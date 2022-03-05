@@ -2,10 +2,13 @@
 
 import cv2 as cv
 import numpy as np
-import sys
-import time
+import argparse
 
-
+parser = argparse.ArgumentParser()
+parser.add_argument('-f','--file', default='traffic.png')
+parser.add_argument('-c','--cfg', default='yolov3-tiny.cfg')
+parser.add_argument('-w','--weights', default='yolov3-tiny.weights')
+args = parser.parse_args()
 
 # Load names of classes
 classes = None
@@ -13,7 +16,7 @@ with open('coco.names', 'rt') as f:
     classes = f.read().rstrip('\n').split('\n')
 
 # Load a network
-net = cv.dnn.readNet('yolov3-tiny.cfg', 'yolov3-tiny.weights', 'darknet')
+net = cv.dnn.readNet(args.cfg, args.weights, 'darknet')
 net.setPreferableBackend(cv.dnn.DNN_BACKEND_OPENCV)
 net.setPreferableTarget(cv.dnn.DNN_TARGET_OPENCL)
 outNames = net.getUnconnectedOutLayersNames()
@@ -127,7 +130,7 @@ def postprocess(frame, outs):
 winName = 'Deep learning object detection in OpenCV'
 cv.namedWindow(winName, cv.WINDOW_NORMAL)
 
-img = cv.imread("traffic.png")
+img = cv.imread(args.file)
 
 blob = cv.dnn.blobFromImage(img, 1/255.0, (416, 416), swapRB=True, crop=False)
 net.setInput(blob)
