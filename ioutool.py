@@ -5,10 +5,17 @@ import numpy as np
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-f','--file', default='traffic.png')
+parser.add_argument('-f','--file', default='train.jpeg')
 parser.add_argument('-c','--cfg', default='yolov3-tiny.cfg')
 parser.add_argument('-w','--weights', default='yolov3-tiny.weights')
+parser.add_argument('-l','--label', default='input.txt')
 args = parser.parse_args()
+
+inputlabel = None
+with open(args.label, 'rt') as f:
+    inputlabel = f.read().split()
+
+print(inputlabel)
 
 # Load names of classes
 classes = None
@@ -24,6 +31,20 @@ outNames = net.getUnconnectedOutLayersNames()
 confThreshold = 0.4
 nmsThreshold = 0.4
 
+def drawPredAnnotate(frame, classId, left, top, right, bottom):
+        # Draw a bounding box.
+        cv.rectangle(frame, (left, top), (right, bottom), (255, 0, 0),3)
+
+        # Print a label of class.
+        if classes:
+            assert(classId < len(classes))
+            label = "check: "+ classes[classId]
+
+        labelSize, baseLine = cv.getTextSize(label, cv.FONT_HERSHEY_SIMPLEX, 1, 1)
+        top = max(top, labelSize[1])
+        cv.rectangle(frame, (left, top - labelSize[1]), (left + labelSize[0], top + baseLine), (255, 255, 255), cv.FILLED)
+        cv.putText(frame, label, (left, top), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
+
 def postprocess(frame, outs):
     print(frame.shape)
     frameHeight = frame.shape[0]
@@ -31,7 +52,7 @@ def postprocess(frame, outs):
 
     def drawPred(classId, conf, left, top, right, bottom):
         # Draw a bounding box.
-        cv.rectangle(frame, (left, top), (right, bottom), (0, 255, 0))
+        cv.rectangle(frame, (left, top), (right, bottom), (0, 255, 0),3)
 
         label = '%.2f' % conf
 
@@ -40,10 +61,10 @@ def postprocess(frame, outs):
             assert(classId < len(classes))
             label = '%s: %s' % (classes[classId], label)
 
-        labelSize, baseLine = cv.getTextSize(label, cv.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+        labelSize, baseLine = cv.getTextSize(label, cv.FONT_HERSHEY_SIMPLEX, 1, 1)
         top = max(top, labelSize[1])
         cv.rectangle(frame, (left, top - labelSize[1]), (left + labelSize[0], top + baseLine), (255, 255, 255), cv.FILLED)
-        cv.putText(frame, label, (left, top), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
+        cv.putText(frame, label, (left, top), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
 
     layerNames = net.getLayerNames()
     lastLayerId = net.getLayerId(layerNames[-1])
@@ -125,6 +146,15 @@ def postprocess(frame, outs):
         height = box[3]
         drawPred(classIds[i], confidences[i], left, top, left + width, top + height)
         print(box)
+    
+    #draw annotated labeled image
+    realX = int(float(inputlabel[1]) * frameWidth)
+    realY = int(float(inputlabel[2]) * frameHeight)
+    realWidth = int(float(inputlabel[3]) * frameWidth)
+    realHeight = int(float(inputlabel[4]) * frameHeight)
+    realLeft = int(realX - (realWidth/2))
+    realTop = int(realY - (realHeight/2))
+    drawPredAnnotate(frame, int(inputlabel[0]), realLeft, realTop, realLeft + realWidth, realTop + realHeight)
 
 # Process inputs
 winName = 'Deep learning object detection in OpenCV'
